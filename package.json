@@ -1,0 +1,48 @@
+{
+  "name": "couple-time-capsule",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "tsc -b && vite build",
+    "lint": "eslint .",
+    "preview": "vite preview --host 0.0.0.0",
+    "dev:netlify": "netlify dev --port 8888",
+    "test": "vitest run",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "^4.3.1",
+    "date-fns": "^3.6.0",
+    "echarts": "^5.5.1",
+    "heic2any": "^0.0.4",
+    "lucide-react": "^0.468.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.26.2",
+    "vite": "^5.4.6"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.11.1",
+    "@playwright/test": "^1.63.0",
+    "@types/react": "^18.3.8",
+    "@types/react-dom": "^18.3.0",
+    "eslint": "^9.11.1",
+    "eslint-plugin-react-hooks": "^5.1.0-rc.0",
+    "eslint-plugin-react-refresh": "^0.4.12",
+    "fake-indexeddb": "^6.2.5",
+    "globals": "^15.9.0",
+    "netlify-cli": "^27.10.0",
+    "typescript": "^5.5.4",
+    "typescript-eslint": "^8.7.0",
+    "vitest": "^2.1.9"
+  },
+  "pnpm": {
+    "ignoredBuiltDependencies": [
+      "netlify-cli",
+      "sharp",
+      "unix-dgram"
+    ]
+  }
+}

@@ -1,0 +1,9 @@
+function json(statusCode, body) { return { statusCode, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" }, body: JSON.stringify(body) }; }
+function config() { const url = process.env.SUPABASE_URL; const key = process.env.SUPABASE_ANON_KEY; if (!url || !key) throw new Error("Netlify 环境变量未配置"); return { url: url.endsWith("/") ? url.slice(0, -1) : url, key }; }
+export async function handler(event) {
+  try {
+    if (event.httpMethod !== "POST") return json(405, { message: "只支持 POST" });
+    const body = JSON.parse(event.body || "{}"); const contentType = String(body.contentType || ""); const filename = String(body.filename || "photo.jpg"); const base64 = String(body.base64 || ""); const allowed = new Set(["image/jpeg", "image/jpg", "image/png", "image/webp", "image/gif"]); if (!allowed.has(contentType.toLowerCase())) return json(415, { message: "只支持 JPG、PNG、WebP 或 GIF 图片" }); if (!base64 || base64.length > 7000000) return json(413, { message: "图片太大，请压缩后重试" });
+    const suffix = filename.includes(".") ? filename.split(".").pop().toLowerCase() : contentType.split("/").pop(); const extension = suffix === "jpeg" ? "jpg" : suffix; const path = `${crypto.randomUUID()}.${extension || "jpg"}`; const bytes = Buffer.from(base64, "base64"); const { url, key } = config(); const response = await fetch(`${url}/storage/v1/object/moments/${path}`, { method: "POST", headers: { apikey: key, authorization: `Bearer ${key}`, "content-type": contentType, "x-upsert": "false" }, body: bytes }); const text = await response.text(); if (!response.ok) return json(response.status, { message: "照片云端上传失败，请检查 Storage 权限", details: text }); return json(200, { path, contentType });
+  } catch (error) { return json(502, { message: error instanceof Error ? error.message : "照片上传失败" }); }
+}

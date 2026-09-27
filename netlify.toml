@@ -1,0 +1,27 @@
+[build]
+  command = "pnpm build"
+  publish = "dist"
+  functions = "netlify/functions"
+
+[functions]
+  node_bundler = "esbuild"
+
+[[redirects]]
+  from = "/api/cloud-state"
+  to = "/.netlify/functions/cloud-state"
+  status = 200
+
+[[redirects]]
+  from = "/api/moment-upload"
+  to = "/.netlify/functions/moment-upload"
+  status = 200
+
+[[redirects]]
+  from = "/api/moment-image/*"
+  to = "/.netlify/functions/moment-image?path=:splat"
+  status = 200
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

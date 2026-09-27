@@ -1,0 +1,20 @@
+import { expect, Page, test } from "@playwright/test";
+async function mockCloud(page: Page) {
+  const rows = new Map<string,{id:string;data:unknown;updated_at:string}>(); let version=0;
+  await page.route("**/api/cloud-state**", async (route) => { const request=route.request(); if(request.method()==="GET") return route.fulfill({status:200,contentType:"application/json",body:JSON.stringify([...rows.values()])}); const body=request.postDataJSON(); const current=rows.get(body.id); if(body.expectedUpdatedAt && current?.updated_at!==body.expectedUpdatedAt) return route.fulfill({status:409,contentType:"application/json",body:JSON.stringify({message:"conflict",code:"CONFLICT"})}); const row={id:body.id,data:body.data,updated_at:"2026-09-27T00:00:"+String(version++).padStart(2,"0")+".000Z"}; rows.set(body.id,row); return route.fulfill({status:200,contentType:"application/json",body:JSON.stringify(row)}); });
+  await page.route("**/api/moment-image/**", (route) => route.fulfill({status:200,contentType:"image/png",body:Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl2nXsAAAAASUVORK5CYII=","base64")}));
+}
+test.beforeEach(async ({page}) => { await mockCloud(page); });
+test("message reply and comment inputs remain usable", async ({page}, testInfo) => {
+  await page.goto("/#/messages"); await expect(page.locator(".sync-pill")).toContainText(/云端已保存|正在保存|正在连接/);
+  const reply=page.getByPlaceholder("写一条回复").first(); await expect(reply).toBeVisible(); const box=await reply.boundingBox(); expect(box?.height).toBeGreaterThanOrEqual(80); expect(box?.width).toBeGreaterThan(testInfo.project.name.startsWith("mobile")?250:200);
+  await reply.fill("第一行\n第二行"); await reply.press(process.platform==="darwin"?"Meta+Enter":"Control+Enter"); await expect(page.getByText("第一行",{exact:false}).first()).toBeVisible();
+  const overflow=await page.evaluate(() => document.documentElement.scrollWidth-window.innerWidth); expect(overflow).toBeLessThanOrEqual(1); const sendBox=await page.locator(".comment-actions button").first().boundingBox(); expect(sendBox?.height).toBeGreaterThanOrEqual(44); if (["desktop","mobile-390"].includes(testInfo.project.name)) await page.screenshot({path:`test-results/messages-${testInfo.project.name}.png`,fullPage:true});
+});
+test("all main pages have no horizontal overflow", async ({page}) => {
+  for (const path of ["/","/bucket-list","/timeline","/period","/messages","/map","/music","/watchlist","/food","/savings","/moments","/achievements","/settings"]) { await page.goto("/#"+path); await page.waitForTimeout(120); const overflow=await page.evaluate(() => document.documentElement.scrollWidth-window.innerWidth); expect(overflow, path).toBeLessThanOrEqual(1); }
+});
+test("failed photo upload survives reload and can retry", async ({page}) => {
+  let uploadWorks=false; await page.route("**/api/moment-upload", async (route) => { if(!uploadWorks) return route.fulfill({status:502,contentType:"application/json",body:JSON.stringify({message:"网络暂时不可用"})}); return route.fulfill({status:200,contentType:"application/json",body:JSON.stringify({path:"test-photo.jpg",contentType:"image/png"})}); });
+  await page.goto("/#/moments"); await page.getByPlaceholder("这一刻想写些什么").fill("草稿恢复测试"); await page.locator("input[type=file]").setInputFiles({name:"test.png",mimeType:"image/png",buffer:Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl2nXsAAAAASUVORK5CYII=","base64")}); await page.getByRole("button",{name:"发布",exact:true}).click(); await expect(page.getByText("待上传照片")).toBeVisible(); await page.reload(); await expect(page.getByText("草稿恢复测试")).toBeVisible(); await page.goto("/#/messages"); uploadWorks=true; await expect(page.locator(".sync-retry")).toBeVisible(); await page.locator(".sync-retry").click(); await page.goto("/#/moments"); await expect(page.locator(".moment").filter({hasText:"草稿恢复测试"})).toBeVisible({timeout:15000}); await expect(page.locator(".draft-item")).toHaveCount(0);
+});
