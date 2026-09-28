@@ -132,12 +132,13 @@ function stopHeartbeat() {
 }
 
 function getSupabaseHost(): string {
-  const url = import.meta.env.SUPABASE_URL || "";
+  // Netlify Functions 会注入环境变量到全局
+  const url = (import.meta.env?.SUPABASE_URL || (window as any).SUPABASE_URL || "");
   return url.replace(/^https?:\/\//, "");
 }
 
 function getSupabaseKey(): string {
-  return import.meta.env.SUPABASE_ANON_KEY || "";
+  return (import.meta.env?.SUPABASE_ANON_KEY || (window as any).SUPABASE_ANON_KEY || "");
 }
 
 // ============================================

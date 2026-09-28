@@ -58,6 +58,10 @@ import {
 } from "./lib/sharedCloud";
 import { proxyImageUrl, uploadMomentDataUrl } from "./lib/supabase";
 import { deleteMomentDraft, listMomentDrafts, MomentDraft, saveMomentDraft, updateMomentDraft, uploadMomentDraft } from "./lib/momentDrafts";
+import { isRealtimeSyncEnabled } from "./lib/featureFlags";
+import { RealtimeSyncManager } from "./lib/realtimeSync";
+import { isRealtimeSyncEnabled } from "./lib/featureFlags";
+import { RealtimeSyncManager } from "./lib/realtimeSync";
 const navItems = [
   { to: "/", label: "首页", icon: Home },
   { to: "/bucket-list", label: "一百件事", icon: ListChecks },
@@ -132,10 +136,18 @@ function App() {
       : action;
     if (next === current) return;
 
-    const operations = canUseCloudSync() ? diffAppData(current, next, clientIdRef.current) : [];
     dataRef.current = next;
     rawSetData(next);
     saveLocalData(next);
+
+    // 🎯 新架构：直接触发同步
+    if (canUseCloudSync() && isRealtimeSyncEnabled()) {
+      queueMicrotask(() => flushNowRef.current());
+      return;
+    }
+
+    // 🔧 旧架构：生成 operations
+    const operations = canUseCloudSync() ? diffAppData(current, next, clientIdRef.current) : [];
 
     if (operations.length > 0) {
       pendingOpsRef.current = compactPendingOperations([...pendingOpsRef.current, ...operations]);
@@ -191,6 +203,49 @@ function App() {
       return;
     }
 
+    // 🎯 新架构：使用 RealtimeSync
+    if (isRealtimeSyncEnabled()) {
+      console.log("[App] 启用实时同步架构");
+      const syncManager = new RealtimeSyncManager();
+
+      // 初始化并加载云端数据
+      syncManager.initialize((cloudData, syncState) => {
+        // 更新本地数据
+        dataRef.current = cloudData;
+        rawSetData(cloudData);
+        saveLocalData(cloudData);
+
+        // 映射 SyncStatus 到 CloudStatus
+        const statusMap: Record<string, CloudStatus> = {
+          disconnected: "error",
+          connecting: "connecting",
+          connected: "saved",
+          syncing: "saving",
+          error: "error",
+        };
+        setCloudStatus(statusMap[syncState.status] || "saved");
+        setCloudError(syncState.errorMessage);
+        setPendingCount(syncState.pendingCount);
+
+        cloudReadyRef.current = syncState.status === "connected" || syncState.status === "syncing";
+      }).catch((err) => {
+        console.error("[App] 实时同步初始化失败:", err);
+        setCloudStatus("error");
+        setCloudError(err instanceof Error ? err.message : "初始化失败");
+      });
+
+      // 暴露 flush 方法供 setData 调用
+      flushNowRef.current = () => {
+        void syncManager.applyLocalChange(dataRef.current);
+      };
+
+      return () => {
+        syncManager.disconnect();
+        flushNowRef.current = () => undefined;
+      };
+    }
+
+    // 🔧 旧架构：轮询 + 乐观锁（兼容模式）
     let disposed = false;
     let channel: ReturnType<typeof subscribeCloudChanges> = null;
     let retryTimer: number | undefined;
