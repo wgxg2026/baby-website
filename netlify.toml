@@ -12,6 +12,26 @@
   status = 200
 
 [[redirects]]
+  from = "/api/app-state"
+  to = "/.netlify/functions/app-state"
+  status = 200
+
+[[redirects]]
+  from = "/api/operations"
+  to = "/.netlify/functions/operations"
+  status = 200
+
+[[redirects]]
+  from = "/api/upload-token"
+  to = "/.netlify/functions/upload-token"
+  status = 200
+
+[[redirects]]
+  from = "/api/photo-upload"
+  to = "/.netlify/functions/photo-upload"
+  status = 200
+
+[[redirects]]
   from = "/api/moment-upload"
   to = "/.netlify/functions/moment-upload"
   status = 200
