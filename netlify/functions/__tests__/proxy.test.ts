@@ -8,6 +8,7 @@ afterEach(() => vi.unstubAllGlobals());
 
 describe("cloud-state proxy", () => {
   it("filters reads to allowed module ids", async () => { const fetchMock=vi.fn().mockResolvedValue(new Response("[]",{status:200,headers:{"content-type":"application/json"}})); vi.stubGlobal("fetch",fetchMock); const response=await cloudHandler({httpMethod:"GET",rawUrl:"https://site.test/api/cloud-state?ids=messages,notAllowed"}); expect(response.statusCode).toBe(200); expect(String(fetchMock.mock.calls[0][0])).toContain("id=in.(messages)"); });
+  it("never reads the legacy default row", async () => { const fetchMock=vi.fn().mockResolvedValue(new Response("[]",{status:200,headers:{"content-type":"application/json"}})); vi.stubGlobal("fetch",fetchMock); await cloudHandler({httpMethod:"GET",rawUrl:"https://site.test/api/cloud-state?ids=default,messages"}); expect(String(fetchMock.mock.calls[0][0])).toContain("id=in.(messages)"); });
   it("returns 409 when optimistic update matches no row", async () => { vi.stubGlobal("fetch",vi.fn().mockResolvedValue(new Response("[]",{status:200,headers:{"content-type":"application/json"}}))); const response=await cloudHandler({httpMethod:"PUT",body:JSON.stringify({id:"messages",data:[],expectedUpdatedAt:"old"})}); expect(response.statusCode).toBe(409); });
   it("rejects writes to unknown modules", async () => { vi.stubGlobal("fetch",vi.fn()); const response=await cloudHandler({httpMethod:"PUT",body:JSON.stringify({id:"secret",data:{}})}); expect(response.statusCode).toBe(400); });
 });
