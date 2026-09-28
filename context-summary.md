@@ -72,15 +72,19 @@ E2E 覆盖视口：`1440×900`、`1024×768`、`390×844`、`375×812`。已验�
 - 新站点地址：`https://couple-time-capsule-2026.netlify.app`。
 - 项目管理地址：`https://app.netlify.com/projects/couple-time-capsule-2026`。
 - 新站点已配置生产环境变量 `SUPABASE_URL` 和 `SUPABASE_ANON_KEY`，值未写入本文件。
-- 已完成一次生产部署，构建和 Functions 打包成功。
-- 线上首页在 2026-09-28 从当前环境检查返回 HTTP 200。
+- 已完成生产部署（2026-09-28），构建和 7 个 Functions 打包成功。
+- 当前生产地址首页返回 HTTP 200：`https://couple-time-capsule-2026.netlify.app`。
+- `/api/cloud-state`、`/api/app-state`、`/api/operations?since=0` 线上冒烟检查通过；`/api/upload-token` 用 GET 返回 405，符合仅支持 POST 的设计。
+- 本次部署提交：`6a39cb0 prepare realtime sync refactor deployment`。
 - GitHub CLI 未安装；本地仓库尚未添加 GitHub remote，也尚未推送到 GitHub。
+- 注意：`src/App.tsx` 目前仍使用旧 `sharedCloud` 客户端同步；新增 `RealtimeSyncManager` 和操作日志接口已部署但尚未接入页面，暂属于后端灰度准备状态。
 
 ## 未完成事项
 
 1. 在 GitHub 创建私有仓库 `couple-time-capsule`，或使用已有私有仓库。
 2. 将本地仓库分支改为 `main`（如需要），添加 GitHub remote 并推送提交 `ab7e4a1`。
 3. 在 Netlify 项目中连接该 GitHub 仓库，确认构建命令、发布目录和 Functions 目录沿用 `netlify.toml`。
+4. 若要真正启用 Realtime 架构，需要先确认 `App.tsx` 的 feature flag/同步管理器接入，再进行一台设备灰度测试；当前不要仅凭后端接口部署就宣称前端已切换。
 4. 用手机和电脑分别访问新生产地址，验证留言回复、照片上传、刷新恢复和删除操作。
 5. 确认 Netlify 的 Visitor access / Project visibility 已设置为 Public；如果仍返回 401，需要在项目设置中关闭访问保护。
 6. 如需持续部署，在 GitHub 推送一次后确认 Netlify 自动产生新部署。
