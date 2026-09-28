@@ -60,8 +60,6 @@ import { proxyImageUrl, uploadMomentDataUrl } from "./lib/supabase";
 import { deleteMomentDraft, listMomentDrafts, MomentDraft, saveMomentDraft, updateMomentDraft, uploadMomentDraft } from "./lib/momentDrafts";
 import { isRealtimeSyncEnabled } from "./lib/featureFlags";
 import { RealtimeSyncManager } from "./lib/realtimeSync";
-import { isRealtimeSyncEnabled } from "./lib/featureFlags";
-import { RealtimeSyncManager } from "./lib/realtimeSync";
 const navItems = [
   { to: "/", label: "首页", icon: Home },
   { to: "/bucket-list", label: "一百件事", icon: ListChecks },
