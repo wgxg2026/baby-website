@@ -372,7 +372,7 @@ function App() {
       } else {
         void connect();
       }
-    }, 8000);
+    }, 15000);
     void connect();
 
     return () => {
